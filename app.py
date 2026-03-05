@@ -313,7 +313,7 @@ def get_video_info(path: str) -> dict:
     cmd = [
         "ffprobe", "-v", "error",
         "-select_streams", "v:0",
-        "-show_entries", "stream=width,height,r_frame_rate",
+        "-show_entries", "stream=width,height,r_frame_rate,tags=rotate",
         "-show_entries", "format=duration",
         "-of", "default=noprint_wrappers=1:nokey=0", path
     ]
@@ -332,6 +332,9 @@ def get_video_info(path: str) -> dict:
         fps = round(float(num) / float(den), 2)
     except Exception:
         fps = 25.0
+    rotate = int(info.get("TAG:rotate", info.get("rotate", 0)))
+    if rotate in (90, 270, -90):
+        w, h = h, w
     return {"width": w, "height": h, "duration": dur, "fps": fps}
 
 def fmt_time(secs: float) -> str:
@@ -358,13 +361,19 @@ def render_video(video_path: str, logo_path: str, output_path: str, info: dict, 
     logo_w = int(math.sqrt(W**2 + H**2) * 0.1307)
     x = W - logo_w - int(W * 0.05)
     y = int(H * 0.07)
-    filter_complex = f"[1:v]scale={logo_w}:-1[logo];[0:v][logo]overlay={x}:{y}"
+    filter_complex = (
+        f"[0:v]autorotate[vr];"
+        f"[1:v]scale={logo_w}:-1[logo];"
+        f"[vr][logo]overlay={x}:{y}"
+    )
     cmd = [
         "ffmpeg", "-y",
+        "-noautorotate",
         "-i", video_path, "-i", logo_path,
         "-filter_complex", filter_complex,
         "-c:v", "libx264", "-crf", "18", "-preset", "fast",
         "-c:a", "copy", "-movflags", "+faststart",
+        "-map_metadata", "0",
         "-progress", "pipe:1", output_path
     ]
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
