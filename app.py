@@ -310,30 +310,35 @@ def composite_logo(base: Image.Image, logo_path: str, force_w: int = None, force
     return out
 
 def get_video_info(path: str) -> dict:
+    import json as _json
     cmd = [
         "ffprobe", "-v", "error",
         "-select_streams", "v:0",
         "-show_entries", "stream=width,height,r_frame_rate,tags=rotate",
+        "-show_entries", "stream_side_data=rotation",
         "-show_entries", "format=duration",
-        "-of", "default=noprint_wrappers=1:nokey=0", path
+        "-of", "json", path
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
-    info = {}
-    for line in result.stdout.splitlines():
-        if "=" in line:
-            k, v = line.split("=", 1)
-            info[k.strip()] = v.strip()
-    w = int(info.get("width", 0))
-    h = int(info.get("height", 0))
-    dur = float(info.get("duration", 0))
-    fps_raw = info.get("r_frame_rate", "25/1")
+    data = _json.loads(result.stdout)
+    stream = data.get("streams", [{}])[0]
+    w = int(stream.get("width", 0))
+    h = int(stream.get("height", 0))
+    dur = float(data.get("format", {}).get("duration", 0))
+    fps_raw = stream.get("r_frame_rate", "25/1")
     try:
         num, den = fps_raw.split("/")
         fps = round(float(num) / float(den), 2)
     except Exception:
         fps = 25.0
-    rotate = int(info.get("TAG:rotate", info.get("rotate", 0)))
-    if rotate in (90, 270, -90):
+    rotate = 0
+    for sd in stream.get("side_data_list", []):
+        if "rotation" in sd:
+            rotate = int(sd["rotation"])
+            break
+    if rotate == 0:
+        rotate = int(stream.get("tags", {}).get("rotate", 0))
+    if abs(rotate) in (90, 270):
         w, h = h, w
     return {"width": w, "height": h, "duration": dur, "fps": fps}
 
@@ -724,6 +729,6 @@ with tab_t:
 st.markdown("""
 <div class="site-footer">
   <span class="footer-name">© lucas bessonnat</span>
-  <span>v1.11. Aucune donnée n'est conservée sur un serveur.</span>
+  <span>Aucune donnée n'est conservée sur un serveur.</span>
 </div>
 """, unsafe_allow_html=True)
