@@ -340,7 +340,7 @@ def get_video_info(path: str) -> dict:
         rotate = int(stream.get("tags", {}).get("rotate", 0))
     if abs(rotate) in (90, 270):
         w, h = h, w
-    return {"width": w, "height": h, "duration": dur, "fps": fps}
+    return {"width": w, "height": h, "duration": dur, "fps": fps, "rotate": rotate}
 
 def fmt_time(secs: float) -> str:
     m, s = divmod(int(secs), 60)
@@ -361,16 +361,29 @@ def make_thumbnail(video_path: str, logo_path: str, info: dict) -> Image.Image:
     frame = Image.open(io.BytesIO(result.stdout)).convert("RGBA")
     return composite_logo(frame, logo_path, force_w=info["width"], force_h=info["height"]).convert("RGB")
 
+def _rotation_filter(rotate: int) -> str:
+    r = rotate % 360
+    if r == 90:   return "transpose=2"
+    if r == 180:  return "transpose=1,transpose=1"
+    if r == 270:  return "transpose=1"
+    return ""
+
 def render_video(video_path: str, logo_path: str, output_path: str, info: dict, progress_cb=None):
     W, H = info["width"], info["height"]
     logo_w = int(math.sqrt(W**2 + H**2) * 0.1307)
     x = W - logo_w - int(W * 0.05)
     y = int(H * 0.07)
-    filter_complex = (
-        f"[0:v]autorotate[vr];"
-        f"[1:v]scale={logo_w}:-1[logo];"
-        f"[vr][logo]overlay={x}:{y}"
-    )
+    rot_f = _rotation_filter(info.get("rotate", 0))
+    if rot_f:
+        video_chain = f"[0:v]{rot_f}[vr]"
+        overlay_in  = "[vr]"
+    else:
+        video_chain = None
+        overlay_in  = "[0:v]"
+    logo_chain = f"[1:v]scale={logo_w}:-1[logo]"
+    overlay    = f"{overlay_in}[logo]overlay={x}:{y}"
+    parts = [p for p in [video_chain, logo_chain, overlay] if p]
+    filter_complex = ";".join(parts)
     cmd = [
         "ffmpeg", "-y",
         "-noautorotate",
@@ -378,7 +391,6 @@ def render_video(video_path: str, logo_path: str, output_path: str, info: dict, 
         "-filter_complex", filter_complex,
         "-c:v", "libx264", "-crf", "18", "-preset", "fast",
         "-c:a", "copy", "-movflags", "+faststart",
-        "-map_metadata", "0",
         "-progress", "pipe:1", output_path
     ]
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -729,6 +741,6 @@ with tab_t:
 st.markdown("""
 <div class="site-footer">
   <span class="footer-name">© lucas bessonnat</span>
-  <span>v1.12. Aucune donnée n'est conservée sur un serveur.</span>
+  <span>Aucune donnée n'est conservée sur un serveur.</span>
 </div>
 """, unsafe_allow_html=True)
