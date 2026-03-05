@@ -291,12 +291,10 @@ st.markdown(f"""
 
 
 def get_default_logo() -> str:
-    if "default_logo_path" not in st.session_state:
-        tmp = tempfile.mkdtemp()
-        path = os.path.join(tmp, "default_wm.png")
+    path = os.path.join(tempfile.gettempdir(), "luluflix_default_wm.png")
+    if not os.path.exists(path):
         urllib.request.urlretrieve(DEFAULT_WM_URL, path)
-        st.session_state.default_logo_path = path
-    return st.session_state.default_logo_path
+    return path
 
 def composite_logo(base: Image.Image, logo_path: str, force_w: int = None, force_h: int = None) -> Image.Image:
     W = force_w if force_w else base.size[0]
@@ -717,6 +715,6 @@ with tab_t:
 st.markdown("""
 <div class="site-footer">
   <span class="footer-name">© lucas bessonnat</span>
-  <span>v1.0. Aucune donnée n'est conservée sur un serveur.</span>
+  <span>Aucune donnée n'est conservée sur un serveur.</span>
 </div>
 """, unsafe_allow_html=True)
