@@ -717,6 +717,6 @@ with tab_t:
 st.markdown("""
 <div class="site-footer">
   <span class="footer-name">© lucas bessonnat</span>
-  <span>Aucune donnée n'est conservée sur un serveur.</span>
+  <span>v1.0. Aucune donnée n'est conservée sur un serveur.</span>
 </div>
 """, unsafe_allow_html=True)
