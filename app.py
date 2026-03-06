@@ -476,7 +476,7 @@ with tab_v:
             st.download_button("↓  Télécharger la vidéo", data=st.session_state.rendered_bytes,
                 file_name="video_ready_to_post.mp4", mime="video/mp4", key="vdl")
     else:
-        st.markdown('<div class="status status-idle">Déposez une vidéo via "Browse files". N'hésitez pas à me faire remonter les bugs.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="status status-idle">Déposez une vidéo via "Browse files".</div>', unsafe_allow_html=True)
 
 
 with tab_p:
@@ -510,7 +510,7 @@ with tab_p:
         st.download_button("↓  Télécharger la photo", data=buf.getvalue(),
             file_name=fname, mime=mime, key="pdl")
     else:
-        st.markdown('<div class="status status-idle">Déposez une image via "Browse files". N'hésitez pas à me faire remonter les bugs.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="status status-idle">Déposez une image via "Browse files".</div>', unsafe_allow_html=True)
 
 
 with tab_s:
@@ -547,7 +547,7 @@ with tab_s:
             file_name=f"capture_{fmt_time(timecode).replace(':', '-')}.png",
             mime="image/png", key="sdl")
     else:
-        st.markdown('<div class="status status-idle">Déposez une vidéo via "Browse files". N'hésitez pas à me faire remonter les bugs.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="status status-idle">Déposez une vidéo via "Browse files".</div>', unsafe_allow_html=True)
 
 
 with tab_t:
@@ -735,12 +735,12 @@ with tab_t:
             st.download_button("↓  Télécharger la vidéo", data=st.session_state.trim_bytes,
                 file_name="video_coupee.mp4", mime="video/mp4", key="tdl")
     else:
-        st.markdown('<div class="status status-idle">Déposez une vidéo via "Browse files". N'hésitez pas à me faire remonter les bugs.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="status status-idle">Déposez une vidéo via "Browse files".</div>', unsafe_allow_html=True)
 
 
 st.markdown("""
 <div class="site-footer">
   <span class="footer-name">© lucas bessonnat</span>
-  <span>v1.14. Aucune donnée n'est conservée sur un serveur.</span>
+  <span>v1.15. Aucune donnée n'est conservée sur un serveur.</span>
 </div>
 """, unsafe_allow_html=True)
