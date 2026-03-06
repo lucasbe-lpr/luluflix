@@ -285,7 +285,7 @@ div[data-testid="stSpinner"] p {
 st.markdown(f"""
 <div class="site-header">
   <img src="{LOGO_URL}" alt="Luluflix" />
-  <span class="site-header-right">outils vidéo</span>
+  <span class="site-header-right">Le Veriflix du pauvre.</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -741,6 +741,6 @@ with tab_t:
 st.markdown("""
 <div class="site-footer">
   <span class="footer-name">© lucas bessonnat</span>
-  <span>v1.15. Aucune donnée n'est conservée sur un serveur.<br>N'hésitez pas à me faire remonter les bugs.</span>
+  <span>v1.16. Aucune donnée n'est conservée sur un serveur.<br>N'hésitez pas à me faire remonter les bugs.</span>
 </div>
 """, unsafe_allow_html=True)
