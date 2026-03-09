@@ -6,16 +6,18 @@ import base64 as _b64
 import os
 import math
 import io
+import urllib.request
 from PIL import Image
 
-LOGO_FILE       = "luluflix.png"
-DEFAULT_WM_FILE = "lpr.png"
-FAVICON_FILE    = "favicon.png"
+LOGO_URL       = "https://github.com/lucasbe-lpr/luluflix/blob/main/luluflix.png?raw=true"
+DEFAULT_WM_URL = "https://github.com/lucasbe-lpr/luluflix/blob/main/lpr.png?raw=true"
+FAVICON_URL    = "https://github.com/lucasbe-lpr/luluflix/blob/main/favicon.png?raw=true"
 
 try:
-    _fav_img = Image.open(FAVICON_FILE)
+    _fav_data = urllib.request.urlopen(FAVICON_URL).read()
+    _fav_img  = Image.open(io.BytesIO(_fav_data))
 except Exception:
-    _fav_img = "▶"
+    _fav_img  = "▶"
 
 st.set_page_config(
     page_title="Luluflix",
@@ -280,19 +282,19 @@ div[data-testid="stSpinner"] p {
 </style>
 """, unsafe_allow_html=True)
 
-import base64 as _b64h
-with open(LOGO_FILE, "rb") as _f:
-    _logo_b64 = _b64h.b64encode(_f.read()).decode()
 st.markdown(f"""
 <div class="site-header">
-  <img src="data:image/png;base64,{_logo_b64}" alt="Luluflix" />
+  <img src="{LOGO_URL}" alt="Luluflix" />
   <span class="site-header-right">Le Veriflix du pauvre.</span>
 </div>
 """, unsafe_allow_html=True)
 
 
 def get_default_logo() -> str:
-    return DEFAULT_WM_FILE
+    path = os.path.join(tempfile.gettempdir(), "luluflix_default_wm.png")
+    if not os.path.exists(path):
+        urllib.request.urlretrieve(DEFAULT_WM_URL, path)
+    return path
 
 def composite_logo(base: Image.Image, logo_path: str, force_w: int = None, force_h: int = None) -> Image.Image:
     W = force_w if force_w else base.size[0]
@@ -361,9 +363,9 @@ def make_thumbnail(video_path: str, logo_path: str, info: dict) -> Image.Image:
 
 def _rotation_filter(rotate: int) -> str:
     r = rotate % 360
-    if r == 90:   return "transpose=2"
-    if r == 180:  return "transpose=1,transpose=1"
-    if r == 270:  return "transpose=1"
+    if r == 90:   return "transpose=1"
+    if r == 180:  return "vflip,hflip"
+    if r == 270:  return "transpose=2"
     return ""
 
 def render_video(video_path: str, logo_path: str, output_path: str, info: dict, progress_cb=None):
