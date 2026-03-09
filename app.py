@@ -6,18 +6,16 @@ import base64 as _b64
 import os
 import math
 import io
-import urllib.request
 from PIL import Image
 
-LOGO_URL       = "https://github.com/lucasbe-lpr/luluflix/blob/main/luluflix.png?raw=true"
-DEFAULT_WM_URL = "https://github.com/lucasbe-lpr/luluflix/blob/main/lpr.png?raw=true"
-FAVICON_URL    = "https://github.com/lucasbe-lpr/luluflix/blob/main/favicon.png?raw=true"
+LOGO_FILE       = "luluflix.png"
+DEFAULT_WM_FILE = "lpr.png"
+FAVICON_FILE    = "favicon.png"
 
 try:
-    _fav_data = urllib.request.urlopen(FAVICON_URL).read()
-    _fav_img  = Image.open(io.BytesIO(_fav_data))
+    _fav_img = Image.open(FAVICON_FILE)
 except Exception:
-    _fav_img  = "▶"
+    _fav_img = "▶"
 
 st.set_page_config(
     page_title="Luluflix",
@@ -282,19 +280,19 @@ div[data-testid="stSpinner"] p {
 </style>
 """, unsafe_allow_html=True)
 
+import base64 as _b64h
+with open(LOGO_FILE, "rb") as _f:
+    _logo_b64 = _b64h.b64encode(_f.read()).decode()
 st.markdown(f"""
 <div class="site-header">
-  <img src="{LOGO_URL}" alt="Luluflix" />
+  <img src="data:image/png;base64,{_logo_b64}" alt="Luluflix" />
   <span class="site-header-right">Le Veriflix du pauvre.</span>
 </div>
 """, unsafe_allow_html=True)
 
 
 def get_default_logo() -> str:
-    path = os.path.join(tempfile.gettempdir(), "luluflix_default_wm.png")
-    if not os.path.exists(path):
-        urllib.request.urlretrieve(DEFAULT_WM_URL, path)
-    return path
+    return DEFAULT_WM_FILE
 
 def composite_logo(base: Image.Image, logo_path: str, force_w: int = None, force_h: int = None) -> Image.Image:
     W = force_w if force_w else base.size[0]
