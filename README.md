@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="[https://github.com/lucasbe-lpr/app-watermark/blob/main/luluflix.png?raw=true" height="52" alt="Luluflix](https://github.com/lucasbe-lpr/luluflix/blob/main/luluflix.png?raw=true)" />
+  <img src="[https://github.com/lucasbe-lpr/app-watermark/blob/main/luluflix.png?raw=true"/>
 </p>
 
 <h1 align="center">outils vidéo</h1>
