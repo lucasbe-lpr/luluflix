@@ -613,7 +613,7 @@ with tab_v:
             st.download_button("↓  Télécharger la vidéo", data=st.session_state.rendered_bytes,
                 file_name="video_ready_to_post.mp4", mime="video/mp4", key="vdl")
     else:
-        st.markdown('<div class="status status-idle">Déposez une vidéo via "Browse files".</div>', unsafe_allow_html=True)
+        st.markdown('<div class="status status-idle">Déposez une vidéo via "Upload".</div>', unsafe_allow_html=True)
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -704,7 +704,7 @@ with tab_p:
                 key="pdl_zip",
             )
     else:
-        st.markdown('<div class="status status-idle">Déposez une ou plusieurs images via "Browse files".</div>', unsafe_allow_html=True)
+        st.markdown('<div class="status status-idle">Déposez une ou plusieurs images via "Upload".</div>', unsafe_allow_html=True)
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -745,7 +745,7 @@ with tab_s:
             file_name=f"capture_{fmt_time(timecode).replace(':', '-')}.png",
             mime="image/png", key="sdl")
     else:
-        st.markdown('<div class="status status-idle">Déposez une vidéo via "Browse files".</div>', unsafe_allow_html=True)
+        st.markdown('<div class="status status-idle">Déposez une vidéo via "Upload".</div>', unsafe_allow_html=True)
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -937,7 +937,7 @@ with tab_t:
             st.download_button("↓  Télécharger la vidéo", data=st.session_state.trim_bytes,
                 file_name="video_coupee.mp4", mime="video/mp4", key="tdl")
     else:
-        st.markdown('<div class="status status-idle">Déposez une vidéo via "Browse files".</div>', unsafe_allow_html=True)
+        st.markdown('<div class="status status-idle">Déposez une vidéo via "Upload".</div>', unsafe_allow_html=True)
 
 
 st.markdown("""
