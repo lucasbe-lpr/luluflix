@@ -450,22 +450,34 @@ def render_video(
     progress_cb=None
 ):
     W, H = info["width"], info["height"]
-    logo_w = int(math.sqrt(W**2 + H**2) * 0.1307)
-    logo = Image.open(logo_path).convert("RGBA")
-    ratio = logo_w / logo.width
-    lh = int(logo.height * ratio)
-    x, y = compute_xy(position, W, H, logo_w, lh, custom_x, custom_y)
 
-    filter_complex = (
-        f"[1:v]scale={logo_w}:-1[logo];"
-        f"[0:v][logo]overlay={x}:{y}"
-    )
+    # ── Préparer le watermark en haute qualité avec Pillow ──────────────────
+    # On calcule la taille cible du watermark en fonction de la diagonale vidéo,
+    # puis on le redimensionne avec LANCZOS (Pillow) depuis le PNG source original.
+    # FFmpeg ne touche PLUS à la qualité du watermark : il reçoit un PNG déjà
+    # aux bonnes dimensions et le colle pixel-perfect sur la vidéo.
+    logo_w = int(math.sqrt(W**2 + H**2) * 0.1307)
+    logo_orig = Image.open(logo_path).convert("RGBA")
+    ratio = logo_w / logo_orig.width
+    logo_h = int(logo_orig.height * ratio)
+    logo_scaled = logo_orig.resize((logo_w, logo_h), Image.LANCZOS)
+
+    x, y = compute_xy(position, W, H, logo_w, logo_h, custom_x, custom_y)
+
+    # Sauvegarder le watermark pré-scalé dans un fichier temporaire
+    tmp_logo_dir = tempfile.mkdtemp()
+    tmp_logo_path = os.path.join(tmp_logo_dir, "wm_prescaled.png")
+    logo_scaled.save(tmp_logo_path, format="PNG")
+    # ────────────────────────────────────────────────────────────────────────
+
+    # FFmpeg reçoit le watermark déjà à la bonne taille → pas de dégradation
+    filter_complex = f"[0:v][1:v]overlay={x}:{y}"
 
     q = QUALITY_PRESETS.get(quality_key, QUALITY_PRESETS["Standard (CRF 18 — recommandé)"])
 
     cmd = [
         "ffmpeg", "-y",
-        "-i", video_path, "-i", logo_path,
+        "-i", video_path, "-i", tmp_logo_path,
         "-filter_complex", filter_complex,
         "-c:v", "libx264", "-crf", q["crf"], "-preset", q["preset"],
         "-c:a", "copy", "-movflags", "+faststart",
