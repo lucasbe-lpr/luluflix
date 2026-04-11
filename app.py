@@ -312,7 +312,7 @@ with open(LOGO_FILE, "rb") as _f:
 st.markdown(f"""
 <div class="site-header">
   <img src="data:image/png;base64,{_logo_b64}" alt="Luluflix" />
-  <span class="site-header-right">Le Veriflix du pauvre.</span>
+  <span class="site-header-right">N'hésitez pas à me faire remonter les bugs par mail !</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -943,6 +943,6 @@ with tab_t:
 st.markdown("""
 <div class="site-footer">
   <span class="footer-name">© lucas bessonnat</span>
-  <span>v2.0. Aucune donnée n'est conservée sur un serveur.<br>N'hésitez pas à me faire remonter les bugs.</span>
+  <span>v2.0. Aucune donnée n'est conservée sur un serveur.</span>
 </div>
 """, unsafe_allow_html=True)
