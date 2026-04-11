@@ -6,6 +6,7 @@ import base64 as _b64
 import os
 import math
 import io
+import zipfile
 from PIL import Image
 
 LOGO_FILE       = "luluflix.png"
@@ -142,6 +143,11 @@ div[data-testid="stTabs"] [data-baseweb="tab-border"] { display: none !important
   font-size: 0.7rem; font-weight: 500; color: var(--muted);
   letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 0.6rem; margin-top: 0;
 }
+.section-label-mt {
+  font-size: 0.7rem; font-weight: 500; color: var(--muted);
+  letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 0.6rem; margin-top: 1.4rem;
+}
+
 .specs-row {
   display: flex; border: 1px solid var(--border); border-radius: 8px;
   overflow: hidden; margin-bottom: 1.6rem; background: var(--bg);
@@ -277,6 +283,26 @@ div[data-testid="stSpinner"] p {
   outline: none !important;
   box-shadow: none !important;
 }
+
+/* Select box styling */
+[data-testid="stSelectbox"] [data-baseweb="select"] > div {
+  border-color: var(--border) !important;
+  border-radius: 6px !important;
+  font-size: 0.85rem !important;
+}
+[data-testid="stSelectbox"] [data-baseweb="select"] > div:hover {
+  border-color: var(--blue) !important;
+}
+
+/* Photo batch list */
+.photo-batch-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.45rem 0.75rem; border: 1px solid var(--border);
+  border-radius: 6px; margin-bottom: 0.4rem; background: var(--bg);
+  font-size: 0.8rem; color: var(--ink);
+}
+.photo-batch-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.photo-batch-dim  { font-size: 0.7rem; color: var(--muted); flex-shrink: 0; margin-left: 0.5rem; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -294,18 +320,64 @@ st.markdown(f"""
 def get_default_logo() -> str:
     return DEFAULT_WM_FILE
 
-def composite_logo(base: Image.Image, logo_path: str, force_w: int = None, force_h: int = None) -> Image.Image:
+
+# ─── Position helpers ───────────────────────────────────────────────────────
+
+POSITIONS = [
+    "Haut gauche", "Haut centre", "Haut droite",
+    "Milieu gauche", "Centre", "Milieu droite",
+    "Bas gauche", "Bas centre", "Bas droite",
+    "Coordonnées personnalisées",
+]
+DEFAULT_POSITION = "Haut droite"
+
+def compute_xy(position: str, W: int, H: int, logo_w: int, logo_h: int,
+               custom_x: int = 0, custom_y: int = 0,
+               margin_pct: float = 0.05) -> tuple[int, int]:
+    """Return (x, y) top-left corner for the logo given a named position."""
+    mx = int(W * margin_pct)
+    my = int(H * margin_pct)
+
+    if position == "Haut gauche":      return mx, my
+    if position == "Haut centre":      return (W - logo_w) // 2, my
+    if position == "Haut droite":      return W - logo_w - mx, my
+    if position == "Milieu gauche":    return mx, (H - logo_h) // 2
+    if position == "Centre":           return (W - logo_w) // 2, (H - logo_h) // 2
+    if position == "Milieu droite":    return W - logo_w - mx, (H - logo_h) // 2
+    if position == "Bas gauche":       return mx, H - logo_h - my
+    if position == "Bas centre":       return (W - logo_w) // 2, H - logo_h - my
+    if position == "Bas droite":       return W - logo_w - mx, H - logo_h - my
+    # Coordonnées personnalisées
+    return custom_x, custom_y
+
+
+# ─── Pillow composite ────────────────────────────────────────────────────────
+
+def composite_logo(
+    base: Image.Image, logo_path: str,
+    position: str = DEFAULT_POSITION,
+    custom_x: int = 0, custom_y: int = 0,
+    force_w: int = None, force_h: int = None,
+) -> Image.Image:
     W = force_w if force_w else base.size[0]
     H = force_h if force_h else base.size[1]
+
     logo_w = int(math.sqrt(W**2 + H**2) * 0.1307)
     logo = Image.open(logo_path).convert("RGBA")
     ratio = logo_w / logo.width
-    logo = logo.resize((logo_w, int(logo.height * ratio)), Image.LANCZOS)
-    x = W - logo_w - int(W * 0.05)
-    y = int(H * 0.07)
+    logo_h = int(logo.height * ratio)
+    logo = logo.resize((logo_w, logo_h), Image.LANCZOS)
+
+    x, y = compute_xy(position, W, H, logo_w, logo_h, custom_x, custom_y)
+
     out = base.convert("RGBA")
-    out.paste(logo, (x, y), logo)
+    layer = Image.new("RGBA", out.size, (0, 0, 0, 0))
+    layer.paste(logo, (x, y), logo)
+    out = Image.alpha_composite(out, layer)
     return out
+
+
+# ─── Video helpers ───────────────────────────────────────────────────────────
 
 def get_video_info(path: str) -> dict:
     import json as _json
@@ -351,25 +423,51 @@ def extract_frame(video_path: str, timecode: float) -> Image.Image:
     ], capture_output=True)
     return Image.open(io.BytesIO(result.stdout)).convert("RGB")
 
-def make_thumbnail(video_path: str, logo_path: str, info: dict) -> Image.Image:
+def make_thumbnail(video_path: str, logo_path: str, info: dict,
+                   position: str = DEFAULT_POSITION, custom_x: int = 0, custom_y: int = 0) -> Image.Image:
     result = subprocess.run([
         "ffmpeg", "-y", "-i", video_path,
         "-vframes", "1", "-f", "image2pipe", "-vcodec", "png", "pipe:1"
     ], capture_output=True)
     frame = Image.open(io.BytesIO(result.stdout)).convert("RGBA")
-    return composite_logo(frame, logo_path, force_w=info["width"], force_h=info["height"]).convert("RGB")
+    return composite_logo(
+        frame, logo_path,
+        position=position, custom_x=custom_x, custom_y=custom_y,
+        force_w=info["width"], force_h=info["height"]
+    ).convert("RGB")
 
-def render_video(video_path: str, logo_path: str, output_path: str, info: dict, progress_cb=None):
+
+QUALITY_PRESETS = {
+    "Standard (CRF 18 — recommandé)": {"crf": "18", "preset": "fast"},
+    "Haute qualité (CRF 12)":         {"crf": "12", "preset": "slow"},
+    "Sans perte (CRF 0)":             {"crf": "0",  "preset": "ultrafast"},
+}
+
+def render_video(
+    video_path: str, logo_path: str, output_path: str, info: dict,
+    position: str = DEFAULT_POSITION, custom_x: int = 0, custom_y: int = 0,
+    quality_key: str = "Standard (CRF 18 — recommandé)",
+    progress_cb=None
+):
     W, H = info["width"], info["height"]
     logo_w = int(math.sqrt(W**2 + H**2) * 0.1307)
-    x = W - logo_w - int(W * 0.05)
-    y = int(H * 0.07)
-    filter_complex = f"[1:v]scale={logo_w}:-1[logo];[0:v][logo]overlay={x}:{y}"
+    logo = Image.open(logo_path).convert("RGBA")
+    ratio = logo_w / logo.width
+    lh = int(logo.height * ratio)
+    x, y = compute_xy(position, W, H, logo_w, lh, custom_x, custom_y)
+
+    filter_complex = (
+        f"[1:v]scale={logo_w}:-1[logo];"
+        f"[0:v][logo]overlay={x}:{y}"
+    )
+
+    q = QUALITY_PRESETS.get(quality_key, QUALITY_PRESETS["Standard (CRF 18 — recommandé)"])
+
     cmd = [
         "ffmpeg", "-y",
         "-i", video_path, "-i", logo_path,
         "-filter_complex", filter_complex,
-        "-c:v", "libx264", "-crf", "18", "-preset", "fast",
+        "-c:v", "libx264", "-crf", q["crf"], "-preset", q["preset"],
         "-c:a", "copy", "-movflags", "+faststart",
         "-progress", "pipe:1", output_path
     ]
@@ -402,12 +500,48 @@ def trim_video(video_path: str, output_path: str, t_start: float, t_end: float):
         raise RuntimeError(result.stderr.decode())
 
 
+# ─── Shared watermark options UI ─────────────────────────────────────────────
+
+def watermark_options_ui(key_prefix: str) -> dict:
+    """Render position controls. Returns dict of options."""
+    st.markdown('<p class="section-label-mt">Position du watermark</p>', unsafe_allow_html=True)
+
+    position = st.selectbox(
+        "Position",
+        POSITIONS,
+        index=POSITIONS.index(DEFAULT_POSITION),
+        key=f"{key_prefix}_pos",
+    )
+
+    custom_x, custom_y = 0, 0
+    if position == "Coordonnées personnalisées":
+        col_x, col_y = st.columns(2)
+        with col_x:
+            custom_x = st.number_input("X (px depuis gauche)", min_value=0, value=0, step=1, key=f"{key_prefix}_cx")
+        with col_y:
+            custom_y = st.number_input("Y (px depuis haut)", min_value=0, value=0, step=1, key=f"{key_prefix}_cy")
+
+    return {
+        "position": position,
+        "custom_x": int(custom_x),
+        "custom_y": int(custom_y),
+    }
+
+
+# ─── Session state ────────────────────────────────────────────────────────────
+
 for k in ["thumbnail", "rendered_bytes", "trim_bytes", "_last_video_name", "_last_trim_name"]:
     if k not in st.session_state:
         st.session_state[k] = None
 
-tab_v, tab_p, tab_s, tab_t = st.tabs(["Watermark vidéo", "Watermark photo", "Capture d'écran", "Couper une vidéo (βêta)"])
+tab_v, tab_p, tab_s, tab_t = st.tabs([
+    "Watermark vidéo", "Watermark photo", "Capture d'écran", "Couper une vidéo (βêta)"
+])
 
+
+# ═══════════════════════════════════════════════════════════════════
+# TAB 1 — WATERMARK VIDÉO
+# ═══════════════════════════════════════════════════════════════════
 
 with tab_v:
     st.markdown('<p class="section-label">Source</p>', unsafe_allow_html=True)
@@ -426,6 +560,7 @@ with tab_v:
         vp = os.path.join(tmp, "src" + os.path.splitext(video_file.name)[1])
         with open(vp, "wb") as f: f.write(video_file.read())
         nfo = get_video_info(vp)
+
         st.markdown(f"""
         <div class="specs-row">
           <div class="spec-cell"><span class="spec-k">Largeur</span><span class="spec-v">{nfo['width']} px</span></div>
@@ -433,19 +568,41 @@ with tab_v:
           <div class="spec-cell"><span class="spec-k">Durée</span><span class="spec-v">{fmt_time(nfo['duration'])}</span></div>
           <div class="spec-cell"><span class="spec-k">FPS</span><span class="spec-v">{nfo['fps']}</span></div>
         </div>""", unsafe_allow_html=True)
+
+        wm_opts = watermark_options_ui("v")
+
+        st.markdown('<p class="section-label-mt">Qualité d\'export</p>', unsafe_allow_html=True)
+        quality_key = st.selectbox(
+            "Qualité",
+            list(QUALITY_PRESETS.keys()),
+            key="v_quality",
+            label_visibility="collapsed",
+        )
+
+        # Invalidate thumbnail if options changed
+        opts_sig = (wm_opts["position"], wm_opts["custom_x"], wm_opts["custom_y"])
+        if st.session_state.get("_v_opts_sig") != opts_sig:
+            st.session_state.thumbnail = None
+            st.session_state.rendered_bytes = None
+            st.session_state["_v_opts_sig"] = opts_sig
+
         if st.session_state.thumbnail is None:
             with st.spinner("Génération de l'aperçu…"):
-                st.session_state.thumbnail = make_thumbnail(vp, lp, nfo)
+                st.session_state.thumbnail = make_thumbnail(
+                    vp, lp, nfo, **wm_opts
+                )
+
         st.markdown('<div class="preview-wrap"><div class="preview-bar">Aperçu</div>', unsafe_allow_html=True)
         st.image(st.session_state.thumbnail, use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
+
         if not st.session_state.rendered_bytes:
             if st.button("Générer le rendu", key="vbtn"):
                 out = os.path.join(tmp, "video_ready_to_post.mp4")
                 ph = st.empty()
                 ph.markdown('<div class="encoding-wrap"><div class="encoding-ring"></div><span class="encoding-text">Encodage en cours…</span></div><div class="fake-progress-wrap"><div class="fake-progress-track"><div class="fake-progress-bar"></div></div></div>', unsafe_allow_html=True)
                 try:
-                    render_video(vp, lp, out, nfo)
+                    render_video(vp, lp, out, nfo, quality_key=quality_key, **wm_opts)
                     ph.empty()
                     with open(out, "rb") as f:
                         st.session_state.rendered_bytes = f.read()
@@ -459,39 +616,100 @@ with tab_v:
         st.markdown('<div class="status status-idle">Déposez une vidéo via "Browse files".</div>', unsafe_allow_html=True)
 
 
+# ═══════════════════════════════════════════════════════════════════
+# TAB 2 — WATERMARK PHOTO (multi-fichiers)
+# ═══════════════════════════════════════════════════════════════════
+
 with tab_p:
     st.markdown('<p class="section-label">Source</p>', unsafe_allow_html=True)
-    photo_file = st.file_uploader("Déposez votre image ici", type=["png", "jpg", "jpeg"],
-        key="pu", label_visibility="collapsed")
-    if photo_file:
-        lp2 = get_default_logo()
-        base = Image.open(photo_file)
-        W, H = base.size
-        fmt = (base.format or photo_file.name.rsplit(".", 1)[-1]).upper()
-        st.markdown(f"""
-        <div class="specs-row">
-          <div class="spec-cell"><span class="spec-k">Largeur</span><span class="spec-v">{W} px</span></div>
-          <div class="spec-cell"><span class="spec-k">Hauteur</span><span class="spec-v">{H} px</span></div>
-          <div class="spec-cell"><span class="spec-k">Format</span><span class="spec-v">{fmt}</span></div>
-          <div class="spec-cell"><span class="spec-k">Logo</span><span class="spec-v">{int(math.sqrt(W**2+H**2)*0.1307)} px</span></div>
-        </div>""", unsafe_allow_html=True)
-        result_img = composite_logo(base, lp2)
-        st.markdown('<div class="preview-wrap"><div class="preview-bar">Aperçu</div>', unsafe_allow_html=True)
-        st.image(result_img.convert("RGB"), use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-        buf = io.BytesIO()
-        ext = photo_file.name.rsplit(".", 1)[-1].lower()
-        if ext == "png":
-            result_img.save(buf, format="PNG")
-            fname, mime = "photo_ready_to_post.png", "image/png"
-        else:
-            result_img.convert("RGB").save(buf, format="JPEG", quality=97, subsampling=0)
-            fname, mime = "photo_ready_to_post.jpg", "image/jpeg"
-        st.download_button("↓  Télécharger la photo", data=buf.getvalue(),
-            file_name=fname, mime=mime, key="pdl")
-    else:
-        st.markdown('<div class="status status-idle">Déposez une image via "Browse files".</div>', unsafe_allow_html=True)
+    photo_files = st.file_uploader(
+        "Déposez vos images ici",
+        type=["png", "jpg", "jpeg"],
+        key="pu",
+        label_visibility="collapsed",
+        accept_multiple_files=True,
+    )
 
+    if photo_files:
+        lp2 = get_default_logo()
+
+        # List uploaded files
+        st.markdown('<p class="section-label-mt">Fichiers importés</p>', unsafe_allow_html=True)
+        for pf in photo_files:
+            img_tmp = Image.open(pf)
+            W_tmp, H_tmp = img_tmp.size
+            pf.seek(0)
+            st.markdown(
+                f'<div class="photo-batch-item">'
+                f'<span class="photo-batch-name">📷 {pf.name}</span>'
+                f'<span class="photo-batch-dim">{W_tmp} × {H_tmp} px</span>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+        wm_opts_p = watermark_options_ui("p")
+
+        # Preview first image
+        first = photo_files[0]
+        first.seek(0)
+        base_prev = Image.open(first)
+        W, H = base_prev.size
+        result_prev = composite_logo(base_prev, lp2, **wm_opts_p)
+
+        st.markdown('<div class="preview-wrap"><div class="preview-bar">Aperçu — ' + first.name + '</div>', unsafe_allow_html=True)
+        st.image(result_prev.convert("RGB"), use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        # Build outputs
+        def build_photo_output(pf, opts):
+            pf.seek(0)
+            base = Image.open(pf)
+            result = composite_logo(base, lp2, **opts)
+            buf = io.BytesIO()
+            ext = pf.name.rsplit(".", 1)[-1].lower()
+            if ext == "png":
+                result.save(buf, format="PNG")
+                return buf.getvalue(), pf.name.rsplit(".", 1)[0] + "_wm.png", "image/png"
+            else:
+                result.convert("RGB").save(buf, format="JPEG", quality=100, subsampling=0)
+                return buf.getvalue(), pf.name.rsplit(".", 1)[0] + "_wm.jpg", "image/jpeg"
+
+        if len(photo_files) == 1:
+            data, fname, mime = build_photo_output(photo_files[0], wm_opts_p)
+            st.download_button("↓  Télécharger la photo", data=data,
+                file_name=fname, mime=mime, key="pdl_single")
+        else:
+            st.markdown('<p class="section-label-mt">Téléchargement</p>', unsafe_allow_html=True)
+
+            # Individual downloads
+            for i, pf in enumerate(photo_files):
+                data, fname, mime = build_photo_output(pf, wm_opts_p)
+                st.download_button(
+                    f"↓  {pf.name}",
+                    data=data, file_name=fname, mime=mime,
+                    key=f"pdl_{i}",
+                )
+
+            # ZIP download
+            zip_buf = io.BytesIO()
+            with zipfile.ZipFile(zip_buf, "w", zipfile.ZIP_STORED) as zf:
+                for pf in photo_files:
+                    data, fname, _ = build_photo_output(pf, wm_opts_p)
+                    zf.writestr(fname, data)
+            st.download_button(
+                "↓  Tout télécharger (.zip)",
+                data=zip_buf.getvalue(),
+                file_name="photos_watermark.zip",
+                mime="application/zip",
+                key="pdl_zip",
+            )
+    else:
+        st.markdown('<div class="status status-idle">Déposez une ou plusieurs images via "Browse files".</div>', unsafe_allow_html=True)
+
+
+# ═══════════════════════════════════════════════════════════════════
+# TAB 3 — CAPTURE D'ÉCRAN
+# ═══════════════════════════════════════════════════════════════════
 
 with tab_s:
     st.markdown('<p class="section-label">Source</p>', unsafe_allow_html=True)
@@ -529,6 +747,10 @@ with tab_s:
     else:
         st.markdown('<div class="status status-idle">Déposez une vidéo via "Browse files".</div>', unsafe_allow_html=True)
 
+
+# ═══════════════════════════════════════════════════════════════════
+# TAB 4 — COUPER UNE VIDÉO
+# ═══════════════════════════════════════════════════════════════════
 
 with tab_t:
     st.markdown('<p class="section-label">Source</p>', unsafe_allow_html=True)
@@ -721,6 +943,6 @@ with tab_t:
 st.markdown("""
 <div class="site-footer">
   <span class="footer-name">© lucas bessonnat</span>
-  <span>v1.16. Aucune donnée n'est conservée sur un serveur.<br>N'hésitez pas à me faire remonter les bugs.</span>
+  <span>v2.0. Aucune donnée n'est conservée sur un serveur.<br>N'hésitez pas à me faire remonter les bugs.</span>
 </div>
 """, unsafe_allow_html=True)
