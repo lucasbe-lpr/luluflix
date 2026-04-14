@@ -873,6 +873,6 @@ with tab_s:
 st.markdown("""
 <div class="site-footer">
   <span class="footer-name"></span>
-  <span>MàJ 2.1 : MàJ 2.1 : ajout du choix de l’emplacement du watermark (9 positions + option personnalisée) ; possibilité d’importer plusieurs photos à la fois ; amélioration de la qualité d’export</span>
+  <span>MàJ 2.1 : ajout du choix de l’emplacement du watermark (9 positions + option personnalisée) ; possibilité d’importer plusieurs photos à la fois ; amélioration de la qualité d’export</span>
 </div>
 """, unsafe_allow_html=True)
