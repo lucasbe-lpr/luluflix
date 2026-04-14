@@ -873,6 +873,7 @@ with tab_s:
 st.markdown("""
 <div class="site-footer">
   <span class="footer-name"></span>
-  <span><b>[NOUVEAUTÉSv2.1]</b> Choix de l’emplacement du watermark (9 positions + option personnalisée), import de plusieurs photos à la fois et qualité d’export améliorée.</span>
+  <span><i><b>[NOUVEAUTÉS v2.1]</b></i></br> 
+  Choix de l’emplacement du watermark (9 positions + option personnalisée), import de plusieurs photos à la fois et qualité d’export améliorée.</span>
 </div>
 """, unsafe_allow_html=True)
