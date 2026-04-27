@@ -1955,8 +1955,8 @@ function render() {{
     ctx.drawImage(bgImg, dx, dy, dw, dh);
   }}
 
-  const fs     = Math.round(CANVAS_W * 0.05);
-  const fsSur  = Math.round(CANVAS_W * 0.03);
+  const fs     = Math.round(CANVAS_W * 0.07);
+  const fsSur  = Math.round(CANVAS_W * 0.05);
   const pad    = Math.round(CANVAS_W * 0.017);
   const radius = Math.round(CANVAS_W * 0.019);
   const lh     = Math.round(fs * 1.25);
