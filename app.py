@@ -1956,7 +1956,7 @@ function render() {{
   }}
 
   const fs     = Math.round(CANVAS_W * 0.06);
-  const fsSur  = Math.round(CANVAS_W * 0.03);
+  const fsSur  = Math.round(CANVAS_W * 0.04);
   const pad    = Math.round(CANVAS_W * 0.017);
   const radius = Math.round(CANVAS_W * 0.019);
   const lh     = Math.round(fs * 1.25);
@@ -1966,7 +1966,7 @@ function render() {{
   const words = TITLE.split(' ');
   let lines=[], cur='';
   words.forEach(w => {{
-    if ((cur+w).length < 36) cur += (cur?' ':'')+w;
+    if ((cur+w).length < 32) cur += (cur?' ':'')+w;
     else {{ lines.push(cur); cur=w; }}
   }});
   if(cur) lines.push(cur);
