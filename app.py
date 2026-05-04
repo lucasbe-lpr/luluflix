@@ -1960,7 +1960,7 @@ function render() {{
   }}
 
   const fs     = Math.round(CANVAS_W * 0.058);
-  const fsSur  = Math.round(CANVAS_W * 0.045);
+  const fsSur  = Math.round(CANVAS_W * 0.043);
   const pad    = Math.round(CANVAS_W * 0.017);
   const radius = Math.round(CANVAS_W * 0.019);
   const lh     = Math.round(fs * 1.25);
