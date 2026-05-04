@@ -465,7 +465,7 @@ with open (LOGO_FILE ,"rb")as _f :
 st .markdown (f"""
 <div class="site-header">
   <img src="data:image/png;base64,{_logo_b64 }" alt="Luluflix" />
-  <span class="site-header-right">version <code>1.0</code></span>
+  <span class="site-header-right">version <code>1.1</code></span>
 </div>
 """,unsafe_allow_html =True )
 
@@ -1688,7 +1688,7 @@ with tab_canva :
 
         st .markdown ('<p class="section-label">Titre principal</p>',unsafe_allow_html =True )
         canva_title =st .text_area (
-        "Titre",value ="Modifier le titre",
+        "Titre",value ="Modifier le titre (🔴 il maintenant possible de faire des retours à ligne grâce à la touche Entrée)",
         key ="canva_title",label_visibility ="collapsed",height =80 
         )
 
@@ -1768,16 +1768,20 @@ with tab_canva :
                 font_sur =ImageFont .load_default ()
 
                 
-            words =canva_title .split (' ')
-            lines ,cur =[],''
-            for w in words :
-                if len (cur +w )<28 :
-                    cur +=(' 'if cur else '')+w 
-                else :
-                    lines .append (cur )
-                    cur =w 
-            if cur :
-                lines .append (cur )
+            def _wrap_segment (text ,max_chars =28 ):
+                words =text .split (' ')
+                segs ,cur =[],''
+                for w in words :
+                    if len (cur +w )<max_chars :
+                        cur +=(' 'if cur else '')+w 
+                    else :
+                        if cur :segs .append (cur )
+                        cur =w 
+                if cur :segs .append (cur )
+                return segs if segs else ['']
+            lines =[]
+            for segment in canva_title .split ('\n'):
+                lines .extend (_wrap_segment (segment ))
 
             cx =int ((50 /100 )*W )
             total_h =lh *len (lines )
@@ -1963,13 +1967,21 @@ function render() {{
   const overlap= Math.round(CANVAS_W * 0.003);
   const cx     = X_PCT * CANVAS_W;
 
-  const words = TITLE.split(' ');
-  let lines=[], cur='';
-  words.forEach(w => {{
-    if ((cur+w).length < 34) cur += (cur?' ':'')+w;
-    else {{ lines.push(cur); cur=w; }}
+  function wrapSegment(text, maxLen) {{
+    const words = text.split(' ');
+    const segs = []; let cur = '';
+    words.forEach(function(w) {{
+      if ((cur+w).length < maxLen) {{ cur += (cur?' ':'')+w; }}
+      else {{ if(cur) segs.push(cur); cur=w; }}
+    }});
+    if(cur) segs.push(cur);
+    return segs.length ? segs : [''];
+  }}
+  const lines = [];
+  TITLE.split('\\n').forEach(function(seg) {{
+    var wrapped = wrapSegment(seg, 34);
+    for(var _i=0;_i<wrapped.length;_i++) lines.push(wrapped[_i]);
   }});
-  if(cur) lines.push(cur);
 
   ctx.font = `bold ${{fs}}px 'Roboto Condensed','Roboto',sans-serif`;
   const lineWidths = lines.map(l => ctx.measureText(l).width + pad*2);
