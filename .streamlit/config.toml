@@ -1,13 +1,23 @@
 [theme]
+# Couleur primaire (remplace l'orange Streamlit)
 primaryColor = "#0068B1"
-backgroundColor = "#ffffff"
-secondaryBackgroundColor = "#fafafa"
+
+# Couleur de fond de l'application (les zones principales)
+backgroundColor = "#FFFFFF"
+
+# Couleur de fond des éléments secondaires (sidebar, cartes, etc.)
+secondaryBackgroundColor = "#FAFAFA"
+
+# Couleur du texte principal
 textColor = "#111111"
+
+# Police par défaut (Roboto est déjà utilisée dans votre CSS)
 font = "sans serif"
-base = "light
 
 [server]
-maxUploadSize = 200
+# Évite le rechargement intempestif lors du développement (utile en local)
+runOnSave = false
 
 [browser]
+# Onglet du navigateur
 gatherUsageStats = false
