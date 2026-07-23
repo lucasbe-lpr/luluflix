@@ -2130,7 +2130,8 @@ function exportCanvas() {{
             
 st .markdown ("""
 <div class="site-footer">
-  <span>Envoyez-moi <a href="mailto:lucas.bessonnat@leprogres.fr">les messages d'erreur par mail</a>.<br>
+<span></span>  
+<span>Envoyez-moi <a href="mailto:lucas.bessonnat@leprogres.fr">les messages d'erreur par mail</a>.<br>
   Après plusieurs utilisations, appuyez sur la touche <code>F5</code> pour faire du bien au cache de l'app.</br>
   </span>
 </div>
